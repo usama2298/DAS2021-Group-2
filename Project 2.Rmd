@@ -1,0 +1,202 @@
+---
+title: "Project 2"
+author: "group 2"
+output:
+  pdf_document:
+    latex_engine: pdflatex
+    number_sections: yes
+  html_document:
+    df_print: paged
+  word_document: default
+fig_caption: yes
+---
+
+```{r setup, echo=FALSE, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE, eval = TRUE, warning = FALSE, message = FALSE, comment = NA)
+```
+
+```{r echo=FALSE,message=FALSE}
+library(moderndive) ; library(tidyverse) ; library(GGally) ; library(skimr) ; library(plotly)
+library(jtools) ; library(kableExtra) ; library(ggfortify) ; library(janitor) ; library(infer)
+library(gridExtra) ; library(olsrr) ; library(data.table) ; library(knitr) ; library(corrplot)
+library(ggcorrplot) ; library(gapminder) ; library(sjPlot) ; library(stats) ; library(jtools)
+library(MASS) ; library(smacof) ; library(broom) ; library(ROCR) ; library(nnet)
+library(arm) ; library(ggstance) ; library(effects) ; library(COMPoissonReg) ; library(Rcpp)
+library(AER)
+```
+
+```{r Dataset}
+dataset2 <- read_csv("dataset2.csv")
+```
+
+# Exploratory Analysis {#sec:exploratory_analysis}
+
+## Dataset Description:
+
+-   **Total.Household.Income** -- Annual household income (in Philippine peso)
+-   **Region** -- The region of the Philippines which you have data for
+-   **Total.Food.Expenditure** -- Annual expenditure by the household on food (in Philippine peso)
+-   **Household.Head.Sex** -- Head of the households sex
+-   **Household.Head.Age** -- Head of the households age (in years)
+-   **Type.of.Household** -- Relationship between the group of people living in the house
+-   **Total.Number.of.Family.members** -- Number of people living in the house
+-   **House.Floor.Area** -- Floor area of the house (in m2)
+-   **House.Age** -- Age of the building (in years)
+-   **Number.of.bedrooms** -- Number of bedrooms in the house
+-   **Electricity** -- Does the house have electricity? (1=Yes, 0=No)
+
+```{r Data Modifications}
+str(dataset2)
+dataset2 <- dataset2 %>% dplyr::select(-Region)
+dataset2$Electricity <- as.factor(ifelse(dataset2$Electricity == "1", "yes", "No"))
+dataset2$Household.Head.Sex <- as.factor(dataset2$Household.Head.Sex)
+```
+
+# Formal Analysis
+
+Let's have a look at the GLM Poisson model of Response against all Explanatory variables.
+
+```{r Model Poisson}
+mod_poi_full <- glm(Total.Number.of.Family.members ~ Total.Household.Income + Total.Food.Expenditure +
+                 Household.Head.Age + House.Floor.Area + House.Age + Number.of.bedrooms +
+                 Type.of.Household + Household.Head.Sex + Electricity,
+                family = poisson, data = dataset2)
+summary(mod_poi_full)
+
+```
+Here it can been that few explanatory variables have insignificant p value. And confident intervals also contains zero so Let's work on these variables. Let's look at individual models, response against explanatory variables.
+
+```{r}
+mod_sample2 <- glm(Total.Number.of.Family.members ~ Total.Household.Income,
+                  family = poisson, data = dataset2)
+#summary(mod_sample2)
+
+mod_sample3 <- glm(Total.Number.of.Family.members ~ Total.Food.Expenditure,
+                  family = poisson, data = dataset2)
+#summary(mod_sample3)
+
+mod_sample4 <- glm(Total.Number.of.Family.members ~ Household.Head.Age,
+                  family = poisson, data = dataset2)
+#summary(mod_sample4)
+
+mod_sample5 <- glm(Total.Number.of.Family.members ~ Type.of.Household,
+                  family = poisson, data = dataset2)
+#summary(mod_sample5)
+
+mod_sample6 <- glm(Total.Number.of.Family.members ~ Household.Head.Sex,
+                  family = poisson, data = dataset2)
+#Summary(mod_sample6)
+
+mod_poi <- glm(Total.Number.of.Family.members ~ Total.Household.Income +
+                 Household.Head.Age + Number.of.bedrooms + Household.Head.Sex,
+                family = poisson,data = dataset2)
+
+summary(mod_poi)
+```
+
+From this analysis we can see that the veriables given defines the model better so we will go with these variables and let's have a look at model fit.
+```{r}
+mod_poi$deviance
+Mean <- mean(dataset2$Total.Number.of.Family.members)
+Variance <- var(dataset2$Total.Number.of.Family.members)
+c(Var = Variance, Mean = Mean) %>% 
+  kable(col.names = c("Response"), digits = 3, caption = '\\label{tab:Stats} Mean and Variance of Response variable') %>% 
+  kable_styling(latex_options = "striped")
+```
+
+```{r Variance Comparison}
+ggplot(mod_poi, aes(x=log(fitted(mod_poi)), y=log((dataset2$Total.Number.of.Family.members-fitted(mod_poi))^2)))+
+  geom_point(col="#f46d43") +
+  geom_abline(slope=1, intercept=0, col="#a6d96a", size=1) +
+  ylab(expression((y-hat(mu))^2)) + xlab(expression(hat(mu)))
+```
+
+The residual deviance of model is 1247.3 and degree of freedom is 1244. Mean and Variance of response variable have a little difference of 0.4 which can indicate to overdispersion. Furthermore the plot between fitted values and $\epsilon^2$ we can see that there is no problem of dispersion as the residuals have almost equal spread agaist the line. We will proceed to with chi square test, and dispersion test from *AER* library to see how good is our model.
+
+## Goodness of fit
+
+```{r chi square test}
+D <- mod_poi$null.deviance - mod_poi$deviance
+chi_sq <- qchisq(p = 0.95, df = mod_poi$df.null-mod_poi$df.residual)
+c("D0-D1" = D, "X^2 (10)" = chi_sq) %>% 
+  kable(col.names = c("values"), digits = 3, caption = '\\label{tab:Chi_sq test 1} Chi Square Test: Null Model vs Complete Model') %>% 
+  kable_styling(latex_options = "striped")
+
+chi_sq2 <- qchisq(p = 0.95, df = mod_poi$df.residual)
+c("resid D" = mod_poi$deviance, "X^2 (1238)" = chi_sq2) %>%
+  kable(col.names = c("values"), digits = 3, caption = '\\label{tab:Chi_sq test 2} Chi Square Test: Residual Deviance') %>%
+  kable_styling(latex_options = "striped", )
+
+
+disp_test <- dispersiontest(mod_poi, trafo = NULL, alternative = c("greater", "two.sided", "less"))
+
+X2 <- sum(resid(mod_poi, type = "pearson")^2)
+disp_par <- X2 / mod_poi$df.residual
+
+c(disp_test$estimate, "Disp Parameter" = disp_par) %>%
+  kable(col.names = c("values"), digits = 3, caption = '\\label{tab:Dispersion} Dispersion') %>%
+  kable_styling(latex_options = "striped", )
+```
+
+From the comparison of null model and full model in table \ref{tab:Chi_sq test 1} we can see that the $\chi^2(4)$ value is less than the difference between null deviance and residual deviance. which can indicate lack of fit. Secondly from the table \ref{tab:Chi_sq test 2} we can see that residual deviance is greater than $\chi^2(1244)$, which can also lead to lack of fit. lastly, we can see that dispersion test and dispersion parameter value is same So we can try Quasipoisson using **dispersion parameter**.
+
+## Dispersion Parameter
+
+$$\hat{\phi} = \frac{X^2}{n - p}$$
+
+As because of dispersion parameter Wald statistic is not valid, so to check the significance of coefficients we go for "**F**" test.
+
+```{r}
+summary(mod_poi, dispersion =disp_par )
+
+drop1(mod_poi, test = "F")
+confint(mod_poi)
+```
+
+According to the confidence intervals and F statistic, we can see that there is no more insignificant variables. To deal with a little bit of dispersion in model we go for Quasipoisson of negative binomial model and observe results
+
+## Quasipoisson and Negative Binomial model
+
+```{r}
+mod_qpoi <- glm(Total.Number.of.Family.members ~ Total.Household.Income +
+                 Household.Head.Age + Number.of.bedrooms + Household.Head.Sex,
+                family = quasipoisson, data = dataset2)
+
+summary(mod_qpoi)
+mod_nb <- glm.nb(Total.Number.of.Family.members ~ Total.Household.Income +
+                 Household.Head.Age + Number.of.bedrooms + Household.Head.Sex,
+                data = dataset2)
+
+summary(mod_nb)
+```
+
+We can compare the Poisson and Negative Binomial models by looking at their deviances and AIC scores:
+
+```{r model_comparisons} 
+c(mod_qpoi$deviance, mod_qpoi$aic)
+c(mod_nb$deviance, mod_nb$aic)
+```
+
+Both are much smaller for the negative binomial model so the Negative Binomial model is preferred over the Poisson model.
+
+
+# Conclusion
+
+```{r}
+results <- cbind(Estimate = coef(mod_nb), confint(mod_nb))
+exp(results) %>% kable(digits = 3) %>% kable_styling(latex_options = "striped")
+```
+
+The final equation of the model from these estimates is:
+
+$$\widehat{\mbox{Total Members}} $$
+
+
+
+
+
+
+
+
+
+
