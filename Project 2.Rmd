@@ -305,8 +305,8 @@ $$I_{sex}(i) = \left\{
 \end{array}
 \right.$$
 
-$members_i$ -- Response variable; Number of people living in the house
-$income_1$ -- Annual household income (in Philippine peso)
-$age_i$ -- Head of the households age (in years)
-$bedrooms$ -- Number of bedrooms in the house
-$sex_i$ -- Head of the households sex
+$members_i$ -- Response variable; Number of people living in the house\
+$income_1$ -- Annual household income (in Philippine peso)\
+$age_i$ -- Head of the households age (in years)\
+$bedrooms$ -- Number of bedrooms in the house\
+$sex_i$ -- Head of the households sex\
