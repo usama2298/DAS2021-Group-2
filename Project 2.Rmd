@@ -54,11 +54,12 @@ my_skim <- skim_with(base = sfl(n = length))
 dataset2%>%
   dplyr::select(-Household.Head.Sex, -Type.of.Household, -Electricity) %>%
   my_skim()%>%
-  transmute(Variable=c('Total Household Income', 'Total Household Expenditure', 'Household Head Age', 'Number of Family Members',
-                       'Floor Area', 'House Age', 'Number of Bedrooms'), n=n, Mean=numeric.mean, SD=numeric.sd, Min=numeric.p0,
+  transmute(Variable=c('Total Household Income', 'Total Household Expenditure', 'Household Head Age',
+                       'Number of Family Members', 'Floor Area', 'House Age', 'Number of Bedrooms'),
+            n=n, Mean=numeric.mean, SD=numeric.sd, Min=numeric.p0,
             Q1=numeric.p25, Median=numeric.p50,Q3=numeric.p75, Max=numeric.p100) %>%
   kable(caption = '\\label{tab:summary} Summary statistics', digits=2) %>%
-  kable_material(c("striped"))
+  kable_styling(latex_options = "HOLD_position")
 ```
 
 According to the descriptive statistic, there is not any missing value in this database and the number of observations is 1249. There are large standard deviations observed in total household income and total household expenditure, which means the range between rich and poor in this survey is quite considerable. The average capacity of a family is more than 4 people, which ranges from 1 to 16. Most houses have a floor area lies in 5 to 60 square meters, while some houses are drastically big and can be measured up to 750 square meters. Three quarters of the houses are under 22 years old. However, the oldest house could be dated back to 105 years ago. The number of bedrooms ranges from 0 to 7, which has an average of 1.78.
@@ -187,7 +188,7 @@ Mean <- mean(dataset2$Total.Number.of.Family.members)
 Variance <- var(dataset2$Total.Number.of.Family.members)
 c(Var = Variance, Mean = Mean) %>%
   kable(col.names = c("Response"), digits = 3, caption = '\\label{tab:Stats} Mean and Variance of Response variable') %>%
-  kable_material(c("striped"))
+  kable_styling(latex_options = "HOLD_position")
 ```
 
 ```{r Variance Comparison plot, echo=FALSE, fig.cap="\\label{fig:mu_var} Mean vs Variance"}
@@ -207,12 +208,12 @@ D <- mod_poi$null.deviance - mod_poi$deviance
 chi_sq <- qchisq(p = 0.95, df = mod_poi$df.null-mod_poi$df.residual)
 c("D0-D1" = D, "X^2 (10)" = chi_sq) %>%
   kable(col.names = c("values"), digits = 3, caption = '\\label{tab:Chi_sq test 1} Chi Square Test: Null Model vs Complete Model') %>%
-  kable_material(c("striped"))
+  kable_styling(latex_options = "HOLD_position")
 
 chi_sq2 <- qchisq(p = 0.95, df = mod_poi$df.residual)
 c("resid D" = mod_poi$deviance, "X^2 (1238)" = chi_sq2) %>%
   kable(col.names = c("values"), digits = 3, caption = '\\label{tab:Chi_sq test 2} Chi Square Test: Residual Deviance') %>%
-  kable_material(c("striped"))
+  kable_styling(latex_options = "HOLD_position")
 
 
 disp_test <- dispersiontest(mod_poi, trafo = NULL, alternative = c("greater", "two.sided", "less"))
@@ -222,7 +223,7 @@ disp_par <- X2 / mod_poi$df.residual
 
 c(disp_test$estimate, "Disp Parameter" = disp_par) %>%
   kable(col.names = c("values"), digits = 3, caption = '\\label{tab:Dispersion} Dispersion') %>%
-  kable_material(c("striped"))
+  kable_styling(latex_options = "HOLD_position")
 ```
 
 From the comparison of null model and full model in table \ref{tab:Chi_sq test 1} we can see that the $\chi^2(4)$ value is less than the difference between null deviance and residual deviance. which can indicate lack of fit. Secondly from the table \ref{tab:Chi_sq test 2} we can see that residual deviance is greater than $\chi^2(1244)$, which can also lead to lack of fit. lastly, we can see that dispersion test and dispersion parameter value is same So we can try Quasipoisson using **dispersion parameter**.
@@ -240,11 +241,11 @@ summary(mod_poi, dispersion =disp_par )
 
 drop1(mod_poi, test = "F") %>%
   kable(digits = 3, caption = '\\label{tab:F_Test} F Test') %>%
-  kable_material(c("striped"))
+  kable_styling(latex_options = "HOLD_position")
 
 confint(mod_poi) %>%
   kable(digits = 3, caption = '\\label{tab:CI} Confidence Interveals') %>%
-  kable_material(c("striped"))
+  kable_styling(latex_options = "HOLD_position")
 ```
 
 According to the confidence intervals and F statistic, we can see that there is no more insignificant variables. To deal with a little bit of dispersion in model we go for Quasipoisson of negative binomial model and observe results
@@ -279,8 +280,7 @@ data.frame(Deviance = c(mod_qpoi$deviance, mod_nb$deviance),
            AIC = c(mod_qpoi$aic, mod_nb$aic),
            row.names = c("QuasiPoisson","Negative Binomial")) %>%
   kable(digits = 3, caption = '\\label{tab:mod_comparison} Model Comparison') %>%
-  kable_material(c("striped"))
-
+  kable_styling(latex_options = "HOLD_position")
 ```
 
 ## Final Results
@@ -290,7 +290,7 @@ Here in the table below, we can see that the estimates and their confidence inte
 ```{r Results}
 results <- cbind(Estimate = coef(mod_nb), confint(mod_nb))
 exp(results) %>% kable(digits = 3, caption = '\\label{tab:results} Results') %>%
-  kable_material(c("striped"))
+  kable_styling(latex_options = "HOLD_position")
 ```
 
 ### Model Equation
@@ -305,4 +305,8 @@ $$I_{sex}(i) = \left\{
 \end{array}
 \right.$$
 
-$members_i$ -- Response variable; Number of people living in the house $income_1$ -- Annual household income (in Philippine peso) $age_i$ -- Head of the households age (in years) $bedrooms$ -- Number of bedrooms in the house $sex_i$ -- Head of the households sex
+$members_i$ -- Response variable; Number of people living in the house
+$income_1$ -- Annual household income (in Philippine peso)
+$age_i$ -- Head of the households age (in years)
+$bedrooms$ -- Number of bedrooms in the house
+$sex_i$ -- Head of the households sex
