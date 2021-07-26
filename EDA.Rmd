@@ -1,0 +1,99 @@
+---
+title: "Project2-Exploratory"
+author: "Lingqun"
+date: "2021/7/18"
+output: pdf_document
+---
+
+```{r setup, echo=FALSE, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE, eval = TRUE, warning = FALSE, message = FALSE, comment = NA)
+library(dplyr) ; library(moderndive); library(tidyverse) ; library(GGally); library(skimr); library(kableExtra); library(ggplot2);library(gridExtra)
+```
+```{r dataset}
+dataset2 <- read_csv("dataset2.csv")
+dataset2 <- dataset2 %>% dplyr::select(-Region)
+```
+# Exploratory Data Analysis {#sec:EDA}
+
+## Summary Analysis
+```{r Summary}
+my_skim <- skim_with(base = sfl(n = length))
+dataset2%>%
+  select(-Household.Head.Sex, -Type.of.Household, -Electricity)%>%
+  my_skim()%>%
+  transmute(Variable=c('Total Household Income', 'Total Household Expenditure', 'Household Head Age', 'Number of Family Members', 'Floor Area', 'House Age', 'Number of Bedrooms'), n=n, Mean=numeric.mean, SD=numeric.sd, Min=numeric.p0, Q1=numeric.p25, Median=numeric.p50,Q3=numeric.p75, Max=numeric.p100)%>%
+  kable(caption = '\\label{tab:summary} Summary statistics', digits=2)%>%
+  kable_styling(latex_options = "hold_position")
+```
+
+According to the descriptive statistic, there is not any missing value in this database and the number of observations is 1249. There are large standard deviations observed in total household income and total household expenditure, which means the range between rich and poor in this survey is quite considerable. The avarage capacity of a family is more than 4 people, which ranges from 1 to 16. Most houses have a floor area lies in 5 to 60 square meters, while some houses are drastically big and can be measured up to 750 square meters. Three quarters of the houses are under 22 years old. However, the oldest house could be dated back to 105 years ago. The number of bedrooms ranges from 0 to 7, which has an average of 1.78.
+
+## Barplots
+```{r boxplot1, out.width = '68%', fig.align = "center", fig.cap = "\\label{fig:box} Number of Family Members by Family Head Sex.", fig.pos = 'H'}
+#boxplot of family head sex
+ggplot(dataset2, aes(x = Household.Head.Sex, y = Total.Number.of.Family.members)) +
+geom_boxplot() +
+labs(x = "Household Head Sex", y = "Total Number of Family Members")
+```
+The households that have a male head tend to have a larger family, i.e. the median and interquatile range of male head household are larger compared to female head household.
+
+```{r boxplot2, out.width = '68%', fig.align = "center", fig.cap = "\\label{fig:box} Number of Family Members by Type of Household.", fig.pos = 'H'}
+#boxplot of Type of Household
+ggplot(dataset2, aes(x = Type.of.Household, y = Total.Number.of.Family.members)) +
+geom_boxplot() +
+labs(x = "Type of Household", y = "Total Number of Family Members")
+```
+The extended families accomodate more family members compared to other two types, which have a larger median as well. Single families are slightly smaller but still larger than families made with two or more nonrelated persons.
+
+```{r boxplot3, out.width = '68%', fig.align = "center", fig.cap = "\\label{fig:box} Number of Family Members by Electricity.", fig.pos = 'H'}
+#boxplot of Electricity
+ggplot(dataset2, aes(group=Electricity, x = Electricity, y = Total.Number.of.Family.members)) +
+geom_boxplot() +
+labs(x = "Electricity", y = "Total Number of Family Members")
+```
+The influence of electricity to family capacity is not clear since the median values are same between households with and without electricity. However, the interquatile range of no electricity families is larger which means more minor families live without electricity. 
+```{r boxplot4, out.width = '68%', fig.align = "center", fig.cap = "\\label{fig:box} Number of Family Members by Number of Bedrooms.", fig.pos = 'H'}
+#boxplot of bedrooms
+ggplot(dataset2, aes(group=Number.of.bedrooms, x = Number.of.bedrooms, y = Total.Number.of.Family.members)) +
+geom_boxplot() +
+labs(x = "Number of Bedrooms", y = "Total Number of Family Members")
+```
+The median family members in household with five bedrooms shows the largest, which is 5, while which stay 4 in households have under five bedrooms. Households with five bedrooms also have the largest interquatile range, shows a big difference in family capacities. Nevertheless, households with six bedrooms shows the lowest median and range.
+
+## Scatter Plots
+```{r ScatterPlots}
+p1 <- ggplot(dataset2, aes(y = Total.Number.of.Family.members,
+                            x = Total.Household.Income)) +
+  geom_point(alpha=0.3) +
+  labs(y = "Family Members", x = "Total Household Income") 
+p2 <- ggplot(dataset2, aes(y =Total.Number.of.Family.members ,
+                            x =Total.Food.Expenditure)) +
+  geom_point(alpha=0.3) +
+  labs(y = "Family Members", x = "Food Expenditure") 
+p3 <- ggplot(dataset2, aes(y = Total.Number.of.Family.members, 
+                            x = Household.Head.Age)) +
+  geom_point(alpha=0.3) +
+  labs(y = "Family Members", x = "Head Age") 
+p4 <- ggplot(dataset2, aes(y = Total.Number.of.Family.members, 
+                            x = House.Floor.Area)) +
+  geom_point(alpha=0.3) +
+  labs(y = "Family Members", x = "House Floor Area") 
+p5 <- ggplot(dataset2, aes(y = Total.Number.of.Family.members, 
+                            x = House.Age	)) +
+  geom_point(alpha=0.3) +
+  labs(y = "Family Members", x = "House Age") 
+p6 <- ggplot(dataset2, aes(y =  Total.Number.of.Family.members, 
+                            x =Number.of.bedrooms	)) +
+  geom_point(alpha=0.3) +
+  labs(y = "Family Members", x = "Number of Bedrooms") 
+grid.arrange(p1,p2,p3,p4,p5,p6, nrow = 2)
+```
+
+The linear relationship between response variable and exploratory variables are not very clear. Thus a generalised linear model should be used to explain the relationship.
+
+## ggplots
+```{r ggpairs,out.height='100%', out.width= "100%", fig.align='center', fig.cap="\\label{fig:ggpairs1} Correlation Plot ", fig.pos= "H"}
+ggpairs(dataset2[,c(-3,-5,-10)],axisLabels="none", columnLabels=c('Income','Food','Head Age', 'Members','Floor Area','House Age', 'Bedrooms'),lower=list(continuous=wrap("points", alpha=0.4)))
+```
+
+The correlation between household food expenditure and household income is large, which indicates the multicollinearity may need take into consideration. (bedroom&income/food/floor area?) According to the correlation in this graph, the number of family members has a moderate positive relationship with household food expenditure, while other relationships are not obvious and need further research.
