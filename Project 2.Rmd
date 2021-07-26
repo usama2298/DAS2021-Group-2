@@ -1,71 +1,109 @@
 ---
-title: "DAS-Project-2"
-author: "group2"
-date: "2021/7/25"
-output: pdf_document
+title: "Project 2"
+author: "group 2"
+output:
+  pdf_document:
+    latex_engine: pdflatex
+    number_sections: yes
+  html_document:
+    df_print: paged
+  word_document: default
+fig_caption: yes
 ---
 
-```{r setup, echo=FALSE, include=FALSE}
-knitr::opts_chunk$set(echo = FALSE, eval = TRUE, warning = FALSE, message = FALSE, comment = NA)
+```{r, echo=FALSE}
+knitr::opts_chunk$set(tidy.opts = list(width.cutoff = 60), tidy = TRUE)
+```
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE, eval = TRUE, warning = FALSE, message = FALSE, comment = NA, tidy.opts = list(width.cutoff = 60), tidy = TRUE)
+```
+```{r libraries, echo=FALSE, include=FALSE}
 library(dplyr) ; library(moderndive); library(tidyverse) ; library(GGally); library(skimr); library(kableExtra); library(ggplot2);library(gridExtra); library(jtools) ; library(ggfortify) ; library(janitor) ; library(infer)
 library(gridExtra) ; library(olsrr) ; library(data.table) ; library(knitr) ; library(corrplot) ; library(AER)
 library(smacof) ; library(broom) ; library(ROCR) ; library(nnet) ; library(Rcpp) ; library(ggstance)
-library(effects) ; library(COMPoissonReg) ; library(broom)
+library(effects) ; library(COMPoissonReg) ; library(broom) ; library(MASS) ; library(ggthemes)
 
 ```
-```{r dataset}
+
+```{r dataset, include=FALSE}
 dataset2 <- read_csv("dataset2.csv")
-dataset2 <- dataset2 %>%select(-Region)
+dataset2 <- dataset2 %>% dplyr::select(-Region)
 ```
+
 # Exploratory Data Analysis {#sec:EDA}
 
+## Dataset Description:
+
+-   **Total.Household.Income** -- Annual household income (in Philippine peso)
+-   **Region** -- The region of the Philippines which you have data for
+-   **Total.Food.Expenditure** -- Annual expenditure by the household on food (in Philippine peso)
+-   **Household.Head.Sex** -- Head of the households sex
+-   **Household.Head.Age** -- Head of the households age (in years)
+-   **Type.of.Household** -- Relationship between the group of people living in the house
+-   **Total.Number.of.Family.members** -- Number of people living in the house
+-   **House.Floor.Area** -- Floor area of the house (in m2)
+-   **House.Age** -- Age of the building (in years)
+-   **Number.of.bedrooms** -- Number of bedrooms in the house
+-   **Electricity** -- Does the house have electricity? (1=Yes, 0=No)
+
 ## Summary Analysis
+
 ```{r Summary}
 my_skim <- skim_with(base = sfl(n = length))
 dataset2%>%
-  select(-Household.Head.Sex, -Type.of.Household, -Electricity)%>%
+  dplyr::select(-Household.Head.Sex, -Type.of.Household, -Electricity) %>%
   my_skim()%>%
-  transmute(Variable=c('Total Household Income', 'Total Household Expenditure', 'Household Head Age', 'Number of Family Members', 'Floor Area', 'House Age', 'Number of Bedrooms'), n=n, Mean=numeric.mean, SD=numeric.sd, Min=numeric.p0, Q1=numeric.p25, Median=numeric.p50,Q3=numeric.p75, Max=numeric.p100)%>%
-  kable(caption = '\\label{tab:summary} Summary statistics', digits=2)%>%
-  kable_styling(latex_options = "hold_position")
+  transmute(Variable=c('Total Household Income', 'Total Household Expenditure', 'Household Head Age', 'Number of Family Members',
+                       'Floor Area', 'House Age', 'Number of Bedrooms'), n=n, Mean=numeric.mean, SD=numeric.sd, Min=numeric.p0,
+            Q1=numeric.p25, Median=numeric.p50,Q3=numeric.p75, Max=numeric.p100) %>%
+  kable(caption = '\\label{tab:summary} Summary statistics', digits=2) %>%
+  kable_material(c("striped"))
 ```
 
-According to the descriptive statistic, there is not any missing value in this database and the number of observations is 1249. There are large standard deviations observed in total household income and total household expenditure, which means the range between rich and poor in this survey is quite considerable. The avarage capacity of a family is more than 4 people, which ranges from 1 to 16. Most houses have a floor area lies in 5 to 60 square meters, while some houses are drastically big and can be measured up to 750 square meters. Three quarters of the houses are under 22 years old. However, the oldest house could be dated back to 105 years ago. The number of bedrooms ranges from 0 to 7, which has an average of 1.78.
+According to the descriptive statistic, there is not any missing value in this database and the number of observations is 1249. There are large standard deviations observed in total household income and total household expenditure, which means the range between rich and poor in this survey is quite considerable. The average capacity of a family is more than 4 people, which ranges from 1 to 16. Most houses have a floor area lies in 5 to 60 square meters, while some houses are drastically big and can be measured up to 750 square meters. Three quarters of the houses are under 22 years old. However, the oldest house could be dated back to 105 years ago. The number of bedrooms ranges from 0 to 7, which has an average of 1.78.
 
-## Barplots
+## Boxplots
+
 ```{r boxplot1, out.width = '68%', fig.align = "center", fig.cap = "\\label{fig:box} Number of Family Members by Family Head Sex.", fig.pos = 'H'}
 #boxplot of family head sex
 ggplot(dataset2, aes(x = Household.Head.Sex, y = Total.Number.of.Family.members)) +
-geom_boxplot() +
-labs(x = "Household Head Sex", y = "Total Number of Family Members")
+geom_boxplot(aes(fill = Household.Head.Sex)) +
+labs(x = "Household Head Sex", y = "Total Number of Family Members") + theme_hc() + scale_colour_hc()
 ```
-The households that have a male head tend to have a larger family, i.e. the median and interquatile range of male head household are larger compared to female head household.
+
+The households that have a male head tend to have a larger family, i.e. the median and interquartile range of male head household are larger compared to female head household.
 
 ```{r boxplot2, out.width = '68%', fig.align = "center", fig.cap = "\\label{fig:box} Number of Family Members by Type of Household.", fig.pos = 'H'}
 #boxplot of Type of Household
 ggplot(dataset2, aes(x = Type.of.Household, y = Total.Number.of.Family.members)) +
-geom_boxplot() +
-labs(x = "Type of Household", y = "Total Number of Family Members")
+geom_boxplot(aes(fill = Type.of.Household)) +
+labs(x = "Type of Household", y = "Total Number of Family Members") + theme_hc() + scale_colour_hc()
 ```
-The extended families accomodate more family members compared to other two types, which have a larger median as well. Single families are slightly smaller but still larger than families made with two or more nonrelated persons.
+
+The extended families accommodate more family members compared to other two types, which have a larger median as well. Single families are slightly smaller but still larger than families made with two or more non-related persons.
 
 ```{r boxplot3, out.width = '68%', fig.align = "center", fig.cap = "\\label{fig:box} Number of Family Members by Electricity.", fig.pos = 'H'}
 #boxplot of Electricity
+dataset2$Electricity <- as.factor(ifelse(dataset2$Electricity == "1", "yes", "No"))
 ggplot(dataset2, aes(group=Electricity, x = Electricity, y = Total.Number.of.Family.members)) +
-geom_boxplot() +
-labs(x = "Electricity", y = "Total Number of Family Members")
+geom_boxplot(aes(fill = Electricity)) +
+labs(x = "Electricity", y = "Total Number of Family Members") + theme_hc() + scale_colour_hc()
 ```
+
 The influence of electricity to family capacity is not clear since the median values are same between households with and without electricity. However, the interquatile range of no electricity families is larger which means more minor families live without electricity.
+
 ```{r boxplot4, out.width = '68%', fig.align = "center", fig.cap = "\\label{fig:box} Number of Family Members by Number of Bedrooms.", fig.pos = 'H'}
 #boxplot of bedrooms
 ggplot(dataset2, aes(group=Number.of.bedrooms, x = Number.of.bedrooms, y = Total.Number.of.Family.members)) +
-geom_boxplot() +
-labs(x = "Number of Bedrooms", y = "Total Number of Family Members")
+geom_boxplot(aes(fill = Number.of.bedrooms)) +
+labs(x = "Number of Bedrooms", y = "Total Number of Family Members") + theme_hc() + scale_colour_hc()
 ```
-The median family members in household with five bedrooms shows the largest, which is 5, while which stay 4 in households have under five bedrooms. Households with five bedrooms also have the largest interquatile range, shows a big difference in family capacities. Nevertheless, households with six bedrooms shows the lowest median and range.
 
+The median family members in household with five bedrooms shows the largest, which is 5, while which stay 4 in households have under five bedrooms. Households with five bedrooms also have the largest interquartile range, shows a big difference in family capacities. Nevertheless, households with six bedrooms shows the lowest median and range.
 
 ## ggplots
+
 ```{r ggpairs,out.height='100%', out.width= "100%", fig.align='center', fig.cap="\\label{fig:ggpairs1} Correlation Plot ", fig.pos= "H"}
 ggpairs(dataset2[,c(-3,-5,-10)],axisLabels="none", columnLabels=c('Income','Food','Head Age', 'Members','Floor Area','House Age', 'Bedrooms'),lower=list(continuous=wrap("points", alpha=0.4)))
 ```
@@ -77,7 +115,7 @@ The correlation between household food expenditure and household income is large
 Let's have a look at the GLM Poisson model of Response against all Explanatory variables.
 
 ```{r Model Poisson}
-dataset2$Electricity <- as.factor(ifelse(dataset2$Electricity == "1", "yes", "No"))
+
 dataset2$Household.Head.Sex <- as.factor(dataset2$Household.Head.Sex)
 mod_poi_full <- glm(Total.Number.of.Family.members ~ Total.Household.Income + Total.Food.Expenditure +
                  Household.Head.Age + House.Floor.Area + House.Age + Number.of.bedrooms +
@@ -117,38 +155,64 @@ mod_poi <- glm(Total.Number.of.Family.members ~ Total.Household.Income +
 summary(mod_poi)
 ```
 
-From this analysis we can see that the veriables given defines the model better so we will go with these variables and let's have a look at model fit.
-```{r}
+From this analysis we can see that the variables given defines the model better so we will go with these variables and let's have a look at model fit.
+
+## Residual Plots
+
+```{r residual plots, echo=FALSE, fig.cap="\\label{fig:residual} Residual Plots"}
+res_p <- resid(mod_poi, type = "pearson")
+res_d <- resid(mod_poi, type = "deviance")
+
+p1<- ggplot(mod_poi, aes(sample = res_p)) + geom_point(stat = "qq", color = "darkred") +
+  ylab("Pearson residuals") + theme_hc() + scale_colour_hc()
+p2<- ggplot(mod_poi, aes(sample = res_d)) + geom_point(stat = "qq", color = "darkgreen") +
+  ylab("Deviance residuals") + theme_hc() + scale_colour_hc()
+
+p3<- ggplot(mod_poi, aes(x = predict(mod_poi, type="link"), y =res_d))+
+  geom_jitter(col = "darkblue", width = 0.2, height = 0.2) +
+  ylab("Deviance residuals") + xlab("Linear predictor") + theme_hc() + scale_colour_hc()
+
+grid.arrange(p1, p2, p3, nrow = 1)
+```
+
+Here in the grid, Probability plots are showing no deviation from the line. The third plot shows that there is no obvious pattren in our residuals.
+
+## Mean and Variance of Response
+
+Let's have a look at the mean and the variance see the over dispersion.
+
+```{r Mean & variance, echo=FALSE}
 mod_poi$deviance
 Mean <- mean(dataset2$Total.Number.of.Family.members)
 Variance <- var(dataset2$Total.Number.of.Family.members)
 c(Var = Variance, Mean = Mean) %>%
   kable(col.names = c("Response"), digits = 3, caption = '\\label{tab:Stats} Mean and Variance of Response variable') %>%
-  kable_styling(latex_options = "striped")
+  kable_material(c("striped"))
 ```
 
-```{r Variance Comparison}
+```{r Variance Comparison plot, echo=FALSE, fig.cap="\\label{fig:mu_var} Mean vs Variance"}
 ggplot(mod_poi, aes(x=log(fitted(mod_poi)), y=log((dataset2$Total.Number.of.Family.members-fitted(mod_poi))^2)))+
-  geom_point(col="#f46d43") +
-  geom_abline(slope=1, intercept=0, col="#a6d96a", size=1) +
-  ylab(expression((y-hat(mu))^2)) + xlab(expression(hat(mu)))
+  geom_point(col="#3399CC") +
+  geom_abline(slope=1, intercept=0, col="red", size=1) +
+  ylab(expression((y-hat(mu))^2)) + xlab(expression(hat(mu))) +
+  theme_hc() + scale_colour_hc()
 ```
 
-The residual deviance of model is 1247.3 and degree of freedom is 1244. Mean and Variance of response variable have a little difference of 0.4 which can indicate to overdispersion. Furthermore the plot between fitted values and $\epsilon^2$ we can see that there is no problem of dispersion as the residuals have almost equal spread agaist the line. We will proceed to with chi square test, and dispersion test from *AER* library to see how good is our model.
+The residual deviance of model is 1247.3 and degree of freedom is 1244. Mean and Variance of response variable have a little difference of 0.4 which can indicate to overdispersion. Furthermore the plot between fitted values and $\sigma^2$ we can see that there is no problem of dispersion as the residuals have almost equal spread agaist the line. We will proceed to with chi square test, and dispersion test from *AER* library to see how good is our model.
 
 ## Goodness of fit
 
-```{r chi square test}
+```{r chi square test, echo=FALSE}
 D <- mod_poi$null.deviance - mod_poi$deviance
 chi_sq <- qchisq(p = 0.95, df = mod_poi$df.null-mod_poi$df.residual)
 c("D0-D1" = D, "X^2 (10)" = chi_sq) %>%
   kable(col.names = c("values"), digits = 3, caption = '\\label{tab:Chi_sq test 1} Chi Square Test: Null Model vs Complete Model') %>%
-  kable_styling(latex_options = "striped")
+  kable_material(c("striped"))
 
 chi_sq2 <- qchisq(p = 0.95, df = mod_poi$df.residual)
 c("resid D" = mod_poi$deviance, "X^2 (1238)" = chi_sq2) %>%
   kable(col.names = c("values"), digits = 3, caption = '\\label{tab:Chi_sq test 2} Chi Square Test: Residual Deviance') %>%
-  kable_styling(latex_options = "striped", )
+  kable_material(c("striped"))
 
 
 disp_test <- dispersiontest(mod_poi, trafo = NULL, alternative = c("greater", "two.sided", "less"))
@@ -158,35 +222,47 @@ disp_par <- X2 / mod_poi$df.residual
 
 c(disp_test$estimate, "Disp Parameter" = disp_par) %>%
   kable(col.names = c("values"), digits = 3, caption = '\\label{tab:Dispersion} Dispersion') %>%
-  kable_styling(latex_options = "striped", )
+  kable_material(c("striped"))
 ```
 
 From the comparison of null model and full model in table \ref{tab:Chi_sq test 1} we can see that the $\chi^2(4)$ value is less than the difference between null deviance and residual deviance. which can indicate lack of fit. Secondly from the table \ref{tab:Chi_sq test 2} we can see that residual deviance is greater than $\chi^2(1244)$, which can also lead to lack of fit. lastly, we can see that dispersion test and dispersion parameter value is same So we can try Quasipoisson using **dispersion parameter**.
 
-## Dispersion Parameter
+## Dispersion
+
+### Dispersion Parameeter
 
 $$\hat{\phi} = \frac{X^2}{n - p}$$
 
 As because of dispersion parameter Wald statistic is not valid, so to check the significance of coefficients we go for "**F**" test.
 
-```{r}
+```{r Dispersion Parameter}
 summary(mod_poi, dispersion =disp_par )
 
-drop1(mod_poi, test = "F")
-confint(mod_poi)
+drop1(mod_poi, test = "F") %>%
+  kable(digits = 3, caption = '\\label{tab:F_Test} F Test') %>%
+  kable_material(c("striped"))
+
+confint(mod_poi) %>%
+  kable(digits = 3, caption = '\\label{tab:CI} Confidence Interveals') %>%
+  kable_material(c("striped"))
 ```
 
 According to the confidence intervals and F statistic, we can see that there is no more insignificant variables. To deal with a little bit of dispersion in model we go for Quasipoisson of negative binomial model and observe results
 
-## Quasipoisson and Negative Binomial model
+### Quasipoisson
 
-```{r}
+```{r QuasiPoisson}
 mod_qpoi <- glm(Total.Number.of.Family.members ~ Total.Household.Income +
                  Household.Head.Age + Number.of.bedrooms + Household.Head.Sex,
                 family = quasipoisson, data = dataset2)
 
 summary(mod_qpoi)
-library(MASS)
+```
+
+### Negative Binomial
+
+```{r Negative Binomial}
+
 mod_nb <- glm.nb(Total.Number.of.Family.members ~ Total.Household.Income +
                  Household.Head.Age + Number.of.bedrooms + Household.Head.Sex,
                 data = dataset2)
@@ -194,16 +270,39 @@ mod_nb <- glm.nb(Total.Number.of.Family.members ~ Total.Household.Income +
 summary(mod_nb)
 ```
 
-We can compare the Poisson and Negative Binomial models by looking at their deviances and AIC scores:
+## Model Comparison
 
-```{r model_comparisons}
-c(mod_qpoi$deviance, mod_qpoi$aic)
-c(mod_nb$deviance, mod_nb$aic)
+We can compare the Poisson and Negative Binomial models by looking at their deviance and AIC scores. Below in the table we can see that AIC can't be calculated for Quasipoisson model and the deviance much smaller for the negative binomial model so the Negative Binomial model is preferred over the Poisson model
+
+```{r model_comparisons, echo=FALSE}
+data.frame(Deviance = c(mod_qpoi$deviance, mod_nb$deviance),
+           AIC = c(mod_qpoi$aic, mod_nb$aic),
+           row.names = c("QuasiPoisson","Negative Binomial")) %>%
+  kable(digits = 3, caption = '\\label{tab:mod_comparison} Model Comparison') %>%
+  kable_material(c("striped"))
+
 ```
 
-Both are much smaller for the negative binomial model so the Negative Binomial model is preferred over the Poisson model.
+## Final Results
 
-```{r}
+Here in the table below, we can see that the estimates and their confidence intervals which explains the significance of model parameters.
+
+```{r Results}
 results <- cbind(Estimate = coef(mod_nb), confint(mod_nb))
-exp(results) %>% kable(digits = 3) %>% kable_styling(latex_options = "striped")
+exp(results) %>% kable(digits = 3, caption = '\\label{tab:results} Results') %>%
+  kable_material(c("striped"))
 ```
+
+### Model Equation
+
+$$\widehat{Members_i} ~=~ 4.441 ~+~ 1.00 ~\cdot~ \mbox{income}_i ~+~ 0.994 ~\cdot~ \mbox{age}_i ~+~
+1.031 ~\cdot~ \mbox{bedrooms}_i ~+~ 1.284 ~\cdot~ I_{sex}~ (i)$$
+
+$$I_{sex}(i) = \left\{
+\begin{array}{ll}
+1~~\mbox{if}~ith~\mbox{observation is male},\\
+0~~\mbox{Otherwise}.\\
+\end{array}
+\right.$$
+
+$members_i$ -- Response variable; Number of people living in the house $income_1$ -- Annual household income (in Philippine peso) $age_i$ -- Head of the households age (in years) $bedrooms$ -- Number of bedrooms in the house $sex_i$ -- Head of the households sex
