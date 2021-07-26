@@ -131,6 +131,7 @@ mod_poi_full <- glm(Total.Number.of.Family.members ~ Total.Household.Income + To
 summary(mod_poi_full)
 
 ```
+
 Here it can been that few explanatory variables have insignificant p value. And confident intervals also contains zero so Let's work on these variables. Let's look at individual models, response against explanatory variables.
 
 ```{r}
@@ -246,4 +247,7 @@ c(mod_nb$deviance, mod_nb$aic)
 
 Both are much smaller for the negative binomial model so the Negative Binomial model is preferred over the Poisson model.
 
-
+```{r}
+results <- cbind(Estimate = coef(mod_nb), confint(mod_nb))
+exp(results) %>% kable(digits = 3) %>% kable_styling(latex_options = "striped")
+```
